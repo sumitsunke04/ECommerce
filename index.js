@@ -14,6 +14,7 @@ const Supplier = require("./Models/Supplier");
 
 const {addToCart,deleteFromCart} = require("./Controllers/cartController");
 const MyCart = require("./Models/MyCart");
+const { addOrder } = require("./Controllers/orderController");
 
 dotenv.config();
 require('./Connection/Connection')
@@ -205,16 +206,16 @@ app.post('/addProduct',auth.authorizeSupplier,async (req,res)=>{
 }) 
 
 app.post('/addOrder',auth.authorizeUser,async(req,res)=>{
-    // try{
-    //     const {products,cost,orderDate} = req.body;
+    try{
+        const userID = req.currUser.user_id;
 
-    //     if(!products || !orderDate || !cost){
-    //         res.status(400).send("all fields are required");
-    //     }
-    // }
-    // catch(err){
-    //     console.log(err);
-    // }
+        //from this user ID find corresponding cart and directly add it to order
+        await addOrder(userID);
+        res.status(201).send();
+    }
+    catch(err){
+        console.log(err);
+    }
 })
 
 app.get('/getAllProducts',auth.authorizeSupplier,async(req,res)=>{

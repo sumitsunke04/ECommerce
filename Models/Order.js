@@ -6,44 +6,33 @@ const orderSchema = new mongoose.Schema({
         ref:'User',
         required:true
     },
-    products:{
-        type:[
-            {
-                suppID:{
-                    type:mongoose.Schema.Types.ObjectId,
-                    ref:'Supplier',
-                    required:true
-                },
-                prodName:{
-                    type:String,
-                    required:true
-                },
-                price:{
-                    type:Number,
-                    required:true
-                },
-                quantity:{
-                    type:Number,
-                    required:true
-                },
-                category:{
-                    type:String,
-                    required:true
-                },
-                description:{
-                    type:String,
-                    required:true
-                }
+    items:[
+        {
+            productID:{
+                type:mongoose.Schema.Types.ObjectId,
+                ref:'Product',
+                required:true
+            },
+            quantity:{
+                type:Number,
+                required:true,
+                default:1
             }
-        ]
-    },
-    cost:{
+        }
+    ],
+    totalCost:{
         type:Number,
-        required:true
+        // required:true
     },
     orderDate:{
         type:Date,
-        required:true
+        default:Date.now
+    },
+    status:{
+        type:String,
+        enum:["pending","shipped","delievered","cancelled"],
+        default:"pending"
+        //only values in the enum can be set as status
     }
 })
 

@@ -32,7 +32,7 @@ async function calculateCost(items){
     return totalCost;
 }
 
-const addOrder = async(userID)=>{
+const addOrder = async(userID,address)=>{
     try{
         //find the corresponding cart
         let currentCart = await MyCart.findOne({userID:userID});
@@ -45,7 +45,8 @@ const addOrder = async(userID)=>{
         const newOrder = new Order({
             userID:userID,
             items:currentCart.items,
-            totalCost:await calculateCost(currentCart.items)
+            totalCost:await calculateCost(currentCart.items),
+            address:address
         })
 
         const savedOrder = await newOrder.save();

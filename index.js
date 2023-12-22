@@ -209,8 +209,9 @@ app.post('/addOrder',auth.authorizeUser,async(req,res)=>{
     try{
         const userID = req.currUser.user_id;
 
+        const {address} = req.body;
         //from this user ID find corresponding cart and directly add it to order
-        await addOrder(userID);
+        await addOrder(userID,address);
         res.status(201).send();
     }
     catch(err){
@@ -319,7 +320,7 @@ app.get('/searchByCategory',auth.authorizeUser,async(req,res)=>{
     }
 })
 
-app.get('/searchByFilter',async(req,res)=>{
+app.get('/searchByFilter',auth.authorizeUser,async(req,res)=>{
     try{
         const {category,priceRange} = req.query;
 

@@ -15,6 +15,7 @@ const Supplier = require("./Models/Supplier");
 const {addToCart,deleteFromCart} = require("./Controllers/cartController");
 const MyCart = require("./Models/MyCart");
 const { addOrder } = require("./Controllers/orderController");
+const Order = require("./Models/Order");
 
 dotenv.config();
 require('./Connection/Connection')
@@ -283,6 +284,7 @@ app.get('/getCurrentCart',auth.authorizeUser,async(req,res)=>{
 
     if(!currentCart){
         res.status(400).json({msg:"cant find cart"});
+        return ;
     }
     console.log('got my cart',currentCart);
 
@@ -343,6 +345,19 @@ app.get('/searchByFilter',auth.authorizeUser,async(req,res)=>{
     }
 })
 
+app.get('/getOrderHistory',auth.authorizeUser,async(req,res)=>{
+    try{
+        const userID = req.currUser.user_id;
+        const orders = await Order.find({userID:userID})
+        res.status(200).json(orders);
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json({msg:"Internal server error"})
+    }
+   
+
+})
 
 app.listen(port,()=>{
     console.log(`Server running on port ${port}`)

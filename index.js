@@ -297,6 +297,51 @@ app.delete('/deleteFromCart/:productID',auth.authorizeUser,async(req,res)=>{
     res.status(204).send()
 })
 
+app.get('/searchByName',auth.authorizeUser,async(req,res)=>{
+    try{
+        const searchTerm = req.query.q;
+        const products = await Product.find({prodName:{$regex:searchTerm,$options:'i'}})
+        res.json(products)
+    }catch(err){
+        console.log(err)
+        res.status(500).json({msg:"Internal Server Error"})
+    }
+})
+
+app.get('/searchByCategory',auth.authorizeUser,async(req,res)=>{
+    try{
+        const searchTerm = req.query.q;
+        const products = await Product.find({category:{$regex:searchTerm,$options:'i'}})
+        res.json(products)
+    }catch(err){
+        console.log(err)
+        res.status(500).json({msg:"Internal Server Error"})
+    }
+})
+
+app.get('/searchByFilter',async(req,res)=>{
+    try{
+        const {category,priceRange} = req.query;
+
+        //create a filter object
+        let filter = {};
+        if(category){
+            filter.category = category;
+        }
+
+        if(priceRange){
+            const [minPrice,maxPrice] = priceRange.split('-');
+            filter.price = {$gte:minPrice,$lte:maxPrice};
+        }
+        const products = await Product.find(filter);
+        res.json(products);
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json({msg:"Internal Server Error"});
+    }
+})
+
 
 app.listen(port,()=>{
     console.log(`Server running on port ${port}`)

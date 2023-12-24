@@ -1,5 +1,6 @@
 const express = require("express");
 const bcrypt = require("bcrypt")
+const {ObjectId} = require('mongodb')
 const jwt = require('jsonwebtoken')
 const User = require("./Models/User");
 const dotenv = require('dotenv')
@@ -16,6 +17,7 @@ const {addToCart,deleteFromCart} = require("./Controllers/cartController");
 const MyCart = require("./Models/MyCart");
 const { addOrder } = require("./Controllers/orderController");
 const Order = require("./Models/Order");
+const { default: mongoose } = require("mongoose");
 
 dotenv.config();
 require('./Connection/Connection')
@@ -357,6 +359,59 @@ app.get('/getOrderHistory',auth.authorizeUser,async(req,res)=>{
     }
    
 
+})
+
+app.get('/getOrdersForSupplier',auth.authorizeSupplier,async(req,res)=>{
+    try{
+        //Take the supplier ID of the requester
+        const suppID = req.currSupplier.supp_id;
+        
+        //List all the orders
+        const allOrders = await Order.find();
+
+        //This array will have all the order(product) details of requesting supplier
+        let tempObj = [];
+
+        //Iterate on List of Orders
+        for (let eachOrder of allOrders){
+
+            //Iterate over items array of a particular order
+            for(let eachOrderItem of eachOrder.items){
+            
+                //Take the productID
+               const productID = eachOrderItem.productID;
+               //Convert it to type ObjectID otherwise it wont find the prodcut
+               const convertedProductID = new ObjectId(productID);
+
+               //Find the product where productID and suppID matches
+               const product = await Product.findOne({_id:convertedProductID,suppID:suppID});
+
+               //If product is found then create an object "arr"
+               if(product){
+
+                    //create temporary object arr and specify all the attributes
+                    let arr={};
+                    arr.orderID = eachOrder._id;
+                    arr.productID = productID;
+                    arr.prodName = product.prodName;
+                    arr.price = product.price;
+                    arr.quantity = eachOrderItem.quantity;
+                    arr.orderDate = eachOrder.orderDate;
+                    arr.status =  eachOrder.status;
+                    //add it to tempObj array
+                    tempObj = tempObj.concat(arr);
+               }
+               else{
+                    console.log("Not for the requesting supplier")
+               }
+            }
+        }
+        res.status(200).send(tempObj)
+    }
+    catch(err){
+        console.log(err)
+        res.status(500).json({msg:"Internal server error"})
+    }
 })
 
 app.listen(port,()=>{

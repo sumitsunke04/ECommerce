@@ -21,6 +21,15 @@ const productSchema = new mongoose.Schema({
     description:{
         type:String,
         required:true
+    },
+    inStockQuantity:{
+        type:Number,
+        default:1,
+    },
+    availability:{
+        type:String,
+        enum:["inStock","outOfStock","limitedStock"],
+        default:"inStock"
     }
 })
 

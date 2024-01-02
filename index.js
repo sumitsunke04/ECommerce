@@ -92,7 +92,7 @@ app.post('/loginUser',async (req,res)=>{
         const token=jwt.sign({user_id:user._id,email},
             process.env.TOKEN_KEY,
             {
-                expiresIn:"1h",
+                expiresIn:"5h",
             }
         )
         res.cookie("jwt",token,{httpOnly:true,secure:true,maxAge:60000})
@@ -190,37 +190,26 @@ app.post('/loginSupplier',async (req,res)=>{
 
 app.post('/addProduct',auth.authorizeSupplier,async (req,res)=>{
     try{
-        const {prodName,price,category,description} = req.body;
+        const {prodName,price,category,description,inStockQuantity,availabilityStatus} = req.body;
 
         if(!prodName || !price || !category || !description){
             res.status(400).send("All fields are required")
         }
+        if(inStockQuantity < 0){
+            return res.status(500).send("Stock Quantity Cannot Be Negative ");
+        }
 
-        console.log('printig the user : ',req.currSupplier);
+        console.log('printing the user : ',req.currSupplier);
         const suppID = req.currSupplier.supp_id;
 
-        const addedProduct = await addProduct(suppID,prodName,price,category,description);
+        const addedProduct = await addProduct(suppID,prodName,price,category,description,inStockQuantity,availabilityStatus);
 
         res.status(201).json(addedProduct);
     }
     catch(err){
-        console.log("Error in adding product (post method)");
+        console.log("Error in adding product (post method)",err);
     }
 }) 
-
-app.post('/addOrder',auth.authorizeUser,async(req,res)=>{
-    try{
-        const userID = req.currUser.user_id;
-
-        const {address} = req.body;
-        //from this user ID find corresponding cart and directly add it to order
-        await addOrder(userID,address);
-        res.status(201).send();
-    }
-    catch(err){
-        console.log(err);
-    }
-})
 
 app.get('/getAllProducts',auth.authorizeSupplier,async(req,res)=>{
     try{
@@ -236,7 +225,10 @@ app.put('/updateProduct/:productID',auth.authorizeSupplier,async(req,res)=>{
     try{
 
         //all new values will be given through body
-        const {prodName,price,category,description} = req.body;
+        const {prodName,price,category,description,inStockQuantity,availabilityStatus} = req.body;
+        if(inStockQuantity < 0){
+            return res.status(500).send("Quantity cannot be negative")
+        }
 
         //IMP : Pass productID through params
         const {productID} = req.params;
@@ -245,7 +237,7 @@ app.put('/updateProduct/:productID',auth.authorizeSupplier,async(req,res)=>{
         const suppID = req.currSupplier.supp_id;
 
         //Pass all the required arguments to update function
-        const updatedProduct = await updateProduct(suppID,productID,{prodName,price,category,description});
+        const updatedProduct = await updateProduct(suppID,productID,{prodName,price,category,description,inStockQuantity,availabilityStatus});
 
         res.status(200).json({updatedProduct});
     }catch(err){
@@ -269,10 +261,28 @@ app.post('/addToCart',auth.authorizeUser,async(req,res)=>{
         const userID = req.currUser.user_id;
         const {productID,quantity} = req.body;
 
-        const addedToCart = addToCart(userID,productID,quantity);
-
-
-        res.status(200).json(addedToCart);
+        
+        if(quantity < 0){
+            return res.status(500).send("Quantity cannot be negative");
+        }
+        
+        const convertedProductID = new ObjectId(productID);
+        const product =await Product.findOne({_id:convertedProductID});
+        
+        if(product){
+            
+            const availableQuantity = Number(product.inStockQuantity);
+            
+            if(availableQuantity < quantity){
+                return res.status(500).json({msg:`${quantity}, units are not available `})
+            }
+            const addedToCart = addToCart(userID,productID,quantity);
+            res.status(200).json(addedToCart);
+        }
+        else{
+            return res.status(500).send("Product Not Found")
+        }
+        
     }
     catch(err){
         console.log(err)
@@ -300,6 +310,20 @@ app.delete('/deleteFromCart/:productID',auth.authorizeUser,async(req,res)=>{
 
     await deleteFromCart(userID,productID);
     res.status(204).send()
+})
+
+app.post('/addOrder',auth.authorizeUser,async(req,res)=>{
+    try{
+        const userID = req.currUser.user_id;
+
+        const {address} = req.body;
+        //from this user ID find corresponding cart and directly add it to order
+        await addOrder(userID,address);
+        res.status(201).send();
+    }
+    catch(err){
+        console.log(err);
+    }
 })
 
 app.get('/searchByName',auth.authorizeUser,async(req,res)=>{

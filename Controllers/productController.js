@@ -1,9 +1,9 @@
 const Product = require("../Models/Product");
 
-const addProduct = async(suppID,prodName,price,category,description)=>{
+const addProduct = async(suppID,prodName,price,category,description,inStockQuantity,availabilityStatus)=>{
     try{
         
-        const product = new Product({suppID,prodName,price,category,description});
+        const product = new Product({suppID,prodName,price,category,description,inStockQuantity,availabilityStatus});
 
         const savedProduct = await product.save();
 
@@ -29,6 +29,8 @@ const updateProduct = async(suppID,productID,updatedData)=>{
         product.price = parseInt(updatedData.price) || product.price;
         product.category = updatedData.category || product.category;
         product.description = updatedData.description || product.description;
+        product.inStockQuantity = updatedData.inStockQuantity || product.inStockQuantity;
+        product.availabilityStatus = updatedData.availabilityStatus || product.availabilityStatus;
 
         //save the product
         const updatedProduct = await product.save();

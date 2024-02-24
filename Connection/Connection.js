@@ -1,7 +1,7 @@
 
 const mongoose = require('mongoose')
 
-const url = 'mongodb+srv://sumitmongodb:sumitmongodb@cluster0.avkfdej.mongodb.net/learnIMS?retryWrites=true&w=majority'
+const url = process.env.URL
 
 mongoose.connect(url)
 .then(()=>{

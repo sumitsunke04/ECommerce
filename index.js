@@ -92,13 +92,13 @@ app.post('/loginUser',async (req,res)=>{
         const token=jwt.sign({user_id:user._id,email},
             process.env.TOKEN_KEY,
             {
-                expiresIn:"5h",
+                expiresIn:"1d",
             }
         )
-        res.cookie("jwt",token,{httpOnly:true,secure:true,maxAge:60000})
+        res.cookie("jwt",token,{httpOnly:true,secure:true,maxAge:60000*24*60})
         user.token=token;
         console.log("logged in successfully",user)
-        return res.status(200).json({token});
+        return res.status(200).json(token);
         
     }
     return res.status(400).send("Invalid Credentials")
@@ -172,13 +172,13 @@ app.post('/loginSupplier',async (req,res)=>{
          const token=jwt.sign({supp_id:supplier._id,email},
              process.env.TOKEN_KEY,
              {
-                 expiresIn:"1h",
+                 expiresIn:"1d",
              }
          )
-         res.cookie("jwt",token,{httpOnly:true,secure:true,maxAge:60000})
+         res.cookie("jwt",token,{httpOnly:true,secure:true,maxAge:60000*24*60})
          supplier.token=token;
          console.log("logged in successfully",supplier)
-         return res.status(200).json({token});
+         return res.status(200).json(token);
          
      }
      return res.status(400).send("Invalid Credentials")
@@ -214,7 +214,7 @@ app.post('/addProduct',auth.authorizeSupplier,async (req,res)=>{
 app.get('/getAllProducts',auth.authorizeSupplier,async(req,res)=>{
     try{
         const products = await Product.find();
-        return res.status(200).json({products});
+        return res.status(200).json(products);
     }
     catch(err){
         console.log(err);
@@ -239,7 +239,7 @@ app.put('/updateProduct/:productID',auth.authorizeSupplier,async(req,res)=>{
         //Pass all the required arguments to update function
         const updatedProduct = await updateProduct(suppID,productID,{prodName,price,category,description,inStockQuantity,availabilityStatus});
 
-        res.status(200).json({updatedProduct});
+        res.status(200).json(updatedProduct);
     }catch(err){
         console.log(err);
     }
@@ -442,3 +442,77 @@ app.listen(port,()=>{
     console.log(`Server running on port ${port}`)
 })
   
+
+
+
+
+
+
+
+
+
+// ----------------------------- FEATURES/ENDPOINTS TO BE ADDED -----------------------------------
+
+// ************************************************************************
+// User Features/Endpoints:
+
+// Product Browsing:
+
+// Endpoint to search for products based on various criteria such as category, price range, etc.
+// Endpoint to view details of a specific product.
+
+// Shopping Cart:
+// Endpoint to update the quantity or remove items from the shopping cart.
+
+// Checkout:
+// Endpoint to initiate the checkout process.
+// Endpoint to provide shipping information.
+// Endpoint to confirm and place the order.
+
+// Order History:
+// Endpoint to track the status of current orders.
+
+// Account Management:
+// Endpoint to update user profile information.
+// Endpoint to change password.
+// Endpoint to delete the user account.
+
+// Wishlist:
+// Endpoint to add/remove products to/from the wishlist.
+// Endpoint to view the wishlist.
+
+// Reviews and Ratings:
+// Endpoint to submit reviews and ratings for products.
+// Endpoint to view reviews and ratings for products.
+
+// ***********************************************************************
+// Supplier Features/Endpoints:
+
+// Product Management:
+// Endpoint to view inventory status.
+
+// Order Management:
+// Endpoint to view incoming orders.
+// Endpoint to update order status (e.g., processing, shipped, delivered).
+// Endpoint to view order history.
+
+// Analytics and Reporting:
+// Endpoint to view sales analytics (e.g., revenue, top-selling products).
+// Endpoint to generate reports (e.g., monthly sales report, inventory report).
+
+// Supplier Profile Management:
+// Endpoint to update supplier profile information.
+// Endpoint to change password.
+// Endpoint to delete the supplier account.
+
+// Communication:
+// Endpoint to communicate with customers (e.g., respond to inquiries, provide support).
+// Endpoint to receive notifications for new orders, messages, etc.
+
+// Inventory Management:
+// Endpoint to manage inventory levels (e.g., restock products, mark products as out of stock).
+// Endpoint to receive low stock alerts.
+
+
+
+

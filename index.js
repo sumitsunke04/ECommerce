@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require('cors');
 const bcrypt = require("bcrypt")
 const {ObjectId} = require('mongodb')
 const jwt = require('jsonwebtoken')
@@ -27,6 +28,10 @@ const port = 3000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(cookieParser());
+app.use(cors({
+    origin:'http://localhost:5173',
+    credentials:true
+}));
 
 app.post("/registerUser",async(req,res)=>{
     try{
@@ -191,7 +196,8 @@ app.post('/loginSupplier',async (req,res)=>{
 app.post('/addProduct',auth.authorizeSupplier,async (req,res)=>{
     try{
         const {prodName,price,category,description,inStockQuantity,availabilityStatus} = req.body;
-
+        console.log('req body : ',req.body)
+        console.log('quantiry : ',inStockQuantity)
         if(!prodName || !price || !category || !description){
             res.status(400).send("All fields are required")
         }
@@ -211,7 +217,7 @@ app.post('/addProduct',auth.authorizeSupplier,async (req,res)=>{
     }
 }) 
 
-app.get('/getAllProducts',auth.authorizeSupplier,async(req,res)=>{
+app.get('/getAllProducts',async(req,res)=>{
     try{
         const products = await Product.find();
         return res.status(200).json(products);
@@ -221,10 +227,24 @@ app.get('/getAllProducts',auth.authorizeSupplier,async(req,res)=>{
     }
 })
 
+app.get('/getSupplierProducts',auth.authorizeSupplier,async(req,res)=>{
+    try{
+        const suppID = req.currSupplier.supp_id;
+        const products = await Product.find({suppID:suppID});
+        return res.status(200).json(products)
+    }catch(error){
+        console.log('error is here')
+        console.log(error.message)
+    }
+
+})
+
 app.put('/updateProduct/:productID',auth.authorizeSupplier,async(req,res)=>{
+    console.log('came to updation')
     try{
 
         //all new values will be given through body
+        console.log('request body',req.body)
         const {prodName,price,category,description,inStockQuantity,availabilityStatus} = req.body;
         if(inStockQuantity < 0){
             return res.status(500).send("Quantity cannot be negative")
@@ -248,31 +268,36 @@ app.put('/updateProduct/:productID',auth.authorizeSupplier,async(req,res)=>{
 })
 
 app.delete('/deleteProduct/:productID',auth.authorizeSupplier,async(req,res)=>{
+
     const suppID = req.currSupplier.supp_id;
+    const { productID } = req.params;
 
-    const {productID} = req.params;
-
-    await deleteProduct(suppID,productID);
-    res.status(204).send()
+    try {
+        await deleteProduct(suppID, productID);
+        res.status(204).send(); // Successfully deleted
+    } catch (err) {
+        console.log('may be product is not found')
+        res.status(400).json({ msg: err.message }); // Send error message
+    }
 })
 
 app.post('/addToCart',auth.authorizeUser,async(req,res)=>{
     try{
         const userID = req.currUser.user_id;
-        const {productID,quantity} = req.body;
-
-        
+        const {productID} = req.body;
+        console.log('request is upto here',productID)
+        quantity = 1;
         if(quantity < 0){
             return res.status(500).send("Quantity cannot be negative");
         }
         
         const convertedProductID = new ObjectId(productID);
         const product =await Product.findOne({_id:convertedProductID});
-        
+        console.log('now it is here')
         if(product){
-            
+            console.log('product details : ',product)
             const availableQuantity = Number(product.inStockQuantity);
-            
+            console.log('avail : ',availableQuantity)
             if(availableQuantity < quantity){
                 return res.status(500).json({msg:`${quantity}, units are not available `})
             }
@@ -292,7 +317,12 @@ app.post('/addToCart',auth.authorizeUser,async(req,res)=>{
 app.get('/getCurrentCart',auth.authorizeUser,async(req,res)=>{
     const userID = req.currUser.user_id;
     console.log('got my userID',userID);
-    let currentCart = await MyCart.findOne({userID:userID});
+
+    let currentCart = await MyCart.findOne({userID:userID}).populate({
+        path:'items.productID',
+        select:'prodName price category description'
+
+    })
 
     if(!currentCart){
         res.status(400).json({msg:"cant find cart"});
@@ -300,8 +330,9 @@ app.get('/getCurrentCart',auth.authorizeUser,async(req,res)=>{
     }
     console.log('got my cart',currentCart);
 
-    const plainCart = currentCart.toObject();
-    res.status(201).json(plainCart);
+    // const plainCart = currentCart.toObject();
+    
+    res.status(201).json(currentCart);
 })
 
 app.delete('/deleteFromCart/:productID',auth.authorizeUser,async(req,res)=>{
@@ -372,20 +403,24 @@ app.get('/searchByFilter',auth.authorizeUser,async(req,res)=>{
 })
 
 app.get('/getOrderHistory',auth.authorizeUser,async(req,res)=>{
+    console.log("request came here");
     try{
         const userID = req.currUser.user_id;
         const orders = await Order.find({userID:userID})
+        .populate({
+            path:'items.productID',
+            select:'prodName price category description'
+        })
         res.status(200).json(orders);
     }
     catch(err){
         console.log(err);
         res.status(500).json({msg:"Internal server error"})
     }
-   
-
 })
 
 app.get('/getOrdersForSupplier',auth.authorizeSupplier,async(req,res)=>{
+    console.log("here")
     try{
         //Take the supplier ID of the requester
         const suppID = req.currSupplier.supp_id;
@@ -434,6 +469,7 @@ app.get('/getOrdersForSupplier',auth.authorizeSupplier,async(req,res)=>{
     }
     catch(err){
         console.log(err)
+        console.log("this is error")
         res.status(500).json({msg:"Internal server error"})
     }
 })

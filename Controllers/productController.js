@@ -2,6 +2,7 @@ const Product = require("../Models/Product");
 
 const addProduct = async(suppID,prodName,price,category,description,inStockQuantity,availabilityStatus)=>{
     try{
+        console.log('herre the quantitiy become',inStockQuantity)
         
         const product = new Product({suppID,prodName,price,category,description,inStockQuantity,availabilityStatus});
 
@@ -42,18 +43,20 @@ const updateProduct = async(suppID,productID,updatedData)=>{
 
 const deleteProduct = async(suppID,productID)=>{
     try{
-        const product = Product.findOne({_id:productID,suppID})
+        const product =await Product.findOne({_id:productID,suppID})
+
 
         if(!product){
             res.status(404).send("Product not found for deletion")
         }
-
-        await Product.deleteOne({_id:productID,suppID})
-
+        console.log('product0',product)
+        
+        const cnt = await Product.deleteOne({_id:productID,suppID})
+        console.log('cnt',cnt)
         console.log("Product deleted successfully ")
     }
     catch(err){
-        console.log(err)
+        throw new Error(err.message)
     }
 }
 

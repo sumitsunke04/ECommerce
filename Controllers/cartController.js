@@ -6,6 +6,7 @@ const Product = require("../Models/Product");
 
 const addToCart = async(userID,productID,quantity) =>{
     try{
+        console.log('there is no error while adding to cart')
         let currentCart = await MyCart.findOne({userID:userID});
 
         if(!currentCart){
@@ -34,7 +35,8 @@ const addToCart = async(userID,productID,quantity) =>{
         console.log("Successfully added to cart ");
     }
     catch(err){
-        console.log(err);
+        console.log('this is an error while adding to cart')
+        console.log('error is :',err);
     }
 }
 
@@ -46,7 +48,11 @@ const deleteFromCart = async(userID,productID)=>{
             console.log("User Dont Have a Cart!!");
         }
 
-        const itemExists = await currentCart.items.find(itemInCart=>itemInCart.productID.equals(productID));
+        console.log('productID is',productID)
+        const objectIdProductID = new ObjectId(productID);
+        console.log(objectIdProductID)
+        console.log('current cart items : ',currentCart.items)
+        const itemExists =  currentCart.items.find(itemInCart=>itemInCart.productID.equals(productID));
 
         
         if(!itemExists){
@@ -61,7 +67,7 @@ const deleteFromCart = async(userID,productID)=>{
         await product.save();
 
 
-        await MyCart.updateOne({userID:userID},{$pull:{items:{productID:productID}}});
+        await MyCart.updateOne({userID:userID},{$pull:{items:{productID:objectIdProductID}}});
 
         console.log("Successfully removed from Cart and updated the respective quantity of product in database");
 

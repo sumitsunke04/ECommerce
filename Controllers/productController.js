@@ -1,21 +1,24 @@
 const Product = require("../Models/Product");
+const cloudinary = require('../cloudinaryConfig');
 
-const addProduct = async(suppID,prodName,price,category,description,inStockQuantity,availabilityStatus)=>{
-    try{
-        console.log('herre the quantitiy become',inStockQuantity)
+
+// const addProduct = async(suppID,prodName,price,category,description,inStockQuantity,availabilityStatus,imageURL)=>{
+//     try{
+//         console.log('herre the quantitiy become',inStockQuantity)
         
-        const product = new Product({suppID,prodName,price,category,description,inStockQuantity,availabilityStatus});
+//         const product = new Product({suppID,prodName,price,category,description,inStockQuantity,availabilityStatus,imageURL});
 
-        const savedProduct = await product.save();
+//         console.log('product added ',product)
+//         const savedProduct = await product.save();
 
-        return savedProduct;
-    }
-    catch(err){
-        console.log("Error adding product",err);
-    }
-}
+//         return savedProduct;
+//     }
+//     catch(err){
+//         console.log("Error adding product",err);
+//     }
+// }
 
-const updateProduct = async(suppID,productID,updatedData)=>{
+exports.updateProduct = async(suppID,productID,updatedData)=>{
     try{
 
         //find the product using corresponding productID and requesters suppID
@@ -41,7 +44,7 @@ const updateProduct = async(suppID,productID,updatedData)=>{
     }
 }
 
-const deleteProduct = async(suppID,productID)=>{
+exports.deleteProduct = async(suppID,productID)=>{
     try{
         const product =await Product.findOne({_id:productID,suppID})
 
@@ -60,4 +63,64 @@ const deleteProduct = async(suppID,productID)=>{
     }
 }
 
-module.exports = {addProduct,updateProduct,deleteProduct};
+
+exports.getAllProducts = async(req,res)=>{
+    try{
+        const products = await Product.find();
+        return res.status(200).json(products);
+    }
+    catch(err){
+        console.log(err);
+    }
+}
+
+exports.getSupplierProducts = async(req,res)=>{
+    try{
+        const suppID = req.currSupplier.supp_id;
+        const products = await Product.find({suppID:suppID});
+        return res.status(200).json(products)
+    }catch(error){
+        console.log('error is here')
+        console.log(error.message)
+    }
+}
+
+exports.addProduct = async(req,res)=>{
+    try{
+        const {prodName,price,category,description,inStockQuantity,availabilityStatus} = req.body;
+       
+        if(!prodName || !price || !category || !description){
+            res.status(400).send("All fields are required")
+        }
+        if(inStockQuantity < 0){
+            return res.status(500).send("Stock Quantity Cannot Be Negative ");
+        }
+
+        console.log('body : ',req.body)
+        console.log('file : ',req.file);
+        const fileBuffer = req.file.buffer;
+        const imageURL = await cloudinary.uploadImageToCloudinary(fileBuffer);
+
+        
+        const suppID = req.currSupplier.supp_id;
+        console.log('herre the quantitiy become',inStockQuantity)
+        
+        const product = new Product({suppID,prodName,price,category,description,inStockQuantity,availabilityStatus,imageURL});
+
+        console.log('product added ',product)
+        const savedProduct = await product.save();
+
+        return savedProduct;
+        // const addedProduct = await addProduct(suppID,prodName,price,category,description,inStockQuantity,availabilityStatus,imageURL);
+
+        // res.status(201).json(addedProduct);
+    }
+    catch(err){
+        console.log("Error in adding product (post method)",err);
+    }
+}
+
+
+
+// module.exports = {updateProduct,deleteProduct};
+// module.exports = {updateProduct};

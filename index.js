@@ -29,215 +29,35 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(cookieParser());
 app.use(cors({
-    origin:'http://localhost:5173',
+    origin:'http://localhost:5174',
     credentials:true
 }));
 
-app.post("/registerUser",async(req,res)=>{
-    try{
-        const {name,email,phone,password} = req.body;
+const authController = require('./Controllers/authController')
+const productController = require('./Controllers/productController')
 
-        // console.log(req.body)
-        if(!name || !email || !phone || !password){
-            res.status(400).send("All inputs are required")
-        }
+//-------------------Cloudinary----------------//
+const cloudinary = require('./cloudinaryConfig');
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer({storage})
+//---------------------------------------------//
 
-        //check if email already exists
-        const oldUser = await User.findOne({email})
 
-        if(oldUser){
-            return res.status(409).send("Email already exists, Please Login !")
-        }
 
-        // encrypt the password
-        const encryptedPassword = await bcrypt.hash(password,10)
+app.post("/registerUser",authController.registerUser);
 
-        //Create User
-        const user = await User.create({
-            name,
-            email:email.toLowerCase(),
-            phone,
-            password:encryptedPassword
-        })
-        
-        //Create token using (userID and email)
-        const token = jwt.sign(
-            {user_id:user._id,email},
-            process.env.TOKEN_KEY,
-            {
-                expiresIn:"1h",
-            }
-        );
+app.post('/loginUser',authController.loginUser);
 
-        //attach token with user object
-        user.token = token;
-        res.status(201).json(user);
+app.post("/registerSupplier",authController.registerSupplier)
 
-    }
-    catch(err){
-        console.log(err);
-    }
-})
+app.post('/loginSupplier',authController.loginSupplier);
 
-app.post('/loginUser',async (req,res)=>{
-   try{
-    const {email,password} = req.body;
-    console.log(req.body)
-    //check if both inputs are given
-    if(!email || !password){
-        res.status(400).send("All fields are required !!")
-    }
+app.post('/addProduct',auth.authorizeSupplier,upload.single('image'),productController.addProduct) 
 
-    //user should already exist in database and password should match
-    const user = await User.findOne({email});
-    if(user && (await bcrypt.compare(password,user.password))){
-        console.log(user)
+app.get('/getAllProducts',productController.getAllProducts)
 
-        //generate token using userrID and email and attach it with user object
-        const token=jwt.sign({user_id:user._id,email},
-            process.env.TOKEN_KEY,
-            {
-                expiresIn:"1d",
-            }
-        )
-        res.cookie("jwt",token,{httpOnly:true,secure:true,maxAge:60000*24*60})
-        user.token=token;
-        console.log("logged in successfully",user)
-        return res.status(200).json(token);
-        
-    }
-    return res.status(400).send("Invalid Credentials")
-   }
-   catch(err){
-        console.log(err);
-   }
-})
-
-app.post("/registerSupplier",async(req,res)=>{
-    try{
-        const {companyName,email,phone,password} = req.body;
-
-        // console.log(req.body)
-        if(!companyName || !email || !phone || !password){
-            res.status(400).send("All inputs are required")
-        }
-
-        //check if email already exists
-        const oldSupplier = await Supplier.findOne({email})
-
-        if(oldSupplier){
-            return res.status(409).send("Email already exists, Please Login !")
-        }
-
-        // encrypt the password
-        const encryptedPassword = await bcrypt.hash(password,10)
-
-        //Create User
-        const supplier = await Supplier.create({
-            companyName,
-            email:email.toLowerCase(),
-            phone,
-            password:encryptedPassword
-        })
-        
-        //Create token using (userID and email)
-        const token = jwt.sign(
-            {supp_id:supplier._id,email},
-            process.env.TOKEN_KEY,
-            {
-                expiresIn:"1h",
-            }
-        );
-
-        //attach token with user object
-        supplier.token = token;
-        res.status(201).json(supplier);
-
-    }
-    catch(err){
-        console.log(err);
-    }
-})
-
-app.post('/loginSupplier',async (req,res)=>{
-    try{
-     const {email,password} = req.body;
-     console.log(req.body)
-     //check if both inputs are given
-     if(!email || !password){
-         res.status(400).send("All fields are required !!")
-     }
- 
-     //user should already exist in database and password should match
-     const supplier = await Supplier.findOne({email});
-     if(supplier && (await bcrypt.compare(password,supplier.password))){
-         console.log(supplier)
- 
-         //generate token using userrID and email and attach it with user object
-         const token=jwt.sign({supp_id:supplier._id,email},
-             process.env.TOKEN_KEY,
-             {
-                 expiresIn:"1d",
-             }
-         )
-         res.cookie("jwt",token,{httpOnly:true,secure:true,maxAge:60000*24*60})
-         supplier.token=token;
-         console.log("logged in successfully",supplier)
-         return res.status(200).json(token);
-         
-     }
-     return res.status(400).send("Invalid Credentials")
-    }
-    catch(err){
-         console.log(err);
-    }
- })
-
-app.post('/addProduct',auth.authorizeSupplier,async (req,res)=>{
-    try{
-        const {prodName,price,category,description,inStockQuantity,availabilityStatus} = req.body;
-        console.log('req body : ',req.body)
-        console.log('quantiry : ',inStockQuantity)
-        if(!prodName || !price || !category || !description){
-            res.status(400).send("All fields are required")
-        }
-        if(inStockQuantity < 0){
-            return res.status(500).send("Stock Quantity Cannot Be Negative ");
-        }
-
-        console.log('printing the user : ',req.currSupplier);
-        const suppID = req.currSupplier.supp_id;
-
-        const addedProduct = await addProduct(suppID,prodName,price,category,description,inStockQuantity,availabilityStatus);
-
-        res.status(201).json(addedProduct);
-    }
-    catch(err){
-        console.log("Error in adding product (post method)",err);
-    }
-}) 
-
-app.get('/getAllProducts',async(req,res)=>{
-    try{
-        const products = await Product.find();
-        return res.status(200).json(products);
-    }
-    catch(err){
-        console.log(err);
-    }
-})
-
-app.get('/getSupplierProducts',auth.authorizeSupplier,async(req,res)=>{
-    try{
-        const suppID = req.currSupplier.supp_id;
-        const products = await Product.find({suppID:suppID});
-        return res.status(200).json(products)
-    }catch(error){
-        console.log('error is here')
-        console.log(error.message)
-    }
-
-})
+app.get('/getSupplierProducts',auth.authorizeSupplier,productController.getSupplierProducts)
 
 app.put('/updateProduct/:productID',auth.authorizeSupplier,async(req,res)=>{
     console.log('came to updation')
@@ -315,6 +135,7 @@ app.post('/addToCart',auth.authorizeUser,async(req,res)=>{
 })
 
 app.get('/getCurrentCart',auth.authorizeUser,async(req,res)=>{
+    
     const userID = req.currUser.user_id;
     console.log('got my userID',userID);
 
@@ -409,7 +230,7 @@ app.get('/getOrderHistory',auth.authorizeUser,async(req,res)=>{
         const orders = await Order.find({userID:userID})
         .populate({
             path:'items.productID',
-            select:'prodName price category description'
+            select:'prodName price category description imageURL'
         })
         res.status(200).json(orders);
     }
@@ -457,6 +278,8 @@ app.get('/getOrdersForSupplier',auth.authorizeSupplier,async(req,res)=>{
                     arr.quantity = eachOrderItem.quantity;
                     arr.orderDate = eachOrder.orderDate;
                     arr.status =  eachOrder.status;
+                    arr.address = eachOrder.address;
+                    arr.imageURL = product.imageURL;
                     //add it to tempObj array
                     tempObj = tempObj.concat(arr);
                }
@@ -473,6 +296,8 @@ app.get('/getOrdersForSupplier',auth.authorizeSupplier,async(req,res)=>{
         res.status(500).json({msg:"Internal server error"})
     }
 })
+
+app.post("/logout",authController.logout);
 
 app.listen(port,()=>{
     console.log(`Server running on port ${port}`)

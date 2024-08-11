@@ -16,7 +16,8 @@ const productSchema = new mongoose.Schema({
     },
     category:{
         type:String,
-        required:true
+        enum:['Clothing','Electronics','Personal Care','Health','Sports','Toys','Books','KitchenWare','Automotive','Jewellery','Groceries','Art and Craft','General'],
+        default:'General'
     },
     description:{
         type:String,
@@ -30,6 +31,9 @@ const productSchema = new mongoose.Schema({
         type:String,
         enum:["inStock","outOfStock","limitedStock"],
         default:"inStock"
+    },
+    imageURL:{
+        type:String
     }
 })
 

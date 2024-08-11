@@ -5,6 +5,7 @@ const Product = require("../Models/Product");
 
 
 const addToCart = async(userID,productID,quantity) =>{
+    console.log("outside try");
     try{
         console.log('there is no error while adding to cart')
         let currentCart = await MyCart.findOne({userID:userID});
@@ -76,5 +77,6 @@ const deleteFromCart = async(userID,productID)=>{
         console.log(err);
     }
 }
+
 
 module.exports = {addToCart,deleteFromCart};
